@@ -3,7 +3,13 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - GoalBlock
+  - Ground
+  - DangerBlock
+  - PowerUpBlock
+  - JumpBoostBlock
+  - SpringBoard
   layers:
   - Default
   - TransparentFX
