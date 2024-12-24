@@ -1,63 +1,151 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement; // 씬 관리
+using TMPro; // TextMeshPro 네임스페이스 추가
 
 public class MoveBall : MonoBehaviour
 {
     [SerializeField]
-    float speed = 5f; // 이동 속도
+    float speed = 5f; // 기본 이동 속도
 
     [SerializeField]
     float jumpForce = 10f; // 점프 힘
     Rigidbody rb; // Rigidbody 컴포넌트
 
     bool isGrounded = true; // 공이 바닥에 닿아있는지 여부
+    bool isPoweredUp = false; // 특수 능력 활성화 여부
+    bool isGameActive = true; // 게임 진행 상태 플래그
+
+    float powerUpDuration = 3f; // 특수 능력 지속 시간
+
+    [SerializeField] GameObject gameOverText; // "Game Over" 메시지
+    [SerializeField] GameObject winText;     // "You Win!" 메시지
+
+    [SerializeField] Color powerUpColor = Color.red; // PowerUp 시 변경할 색상
+    private Color originalColor; // 원래 색상
+    private Renderer ballRenderer; // 공의 Renderer 컴포넌트
 
     void Start()
     {
         rb = GetComponent<Rigidbody>(); // Rigidbody 컴포넌트 가져오기
         rb.isKinematic = false; // 중력과 물리 엔진 영향 받도록 설정
+
+        // Renderer 및 원래 색상 초기화
+        ballRenderer = GetComponent<Renderer>();
+        originalColor = ballRenderer.material.color;
+
+        // UI 초기화
+        if (gameOverText != null) gameOverText.SetActive(false);
+        if (winText != null) winText.SetActive(false);
     }
 
     void Update()
     {
+        if (!isGameActive) return; // 게임 오버/승리 상태에서는 입력 무시
+
         Vector3 move = Vector3.zero;
 
-        // 키 입력을 받아 이동 방향 계산
         if (Input.GetKey(KeyCode.W)) { move += Vector3.forward; }
         if (Input.GetKey(KeyCode.S)) { move += Vector3.back; }
         if (Input.GetKey(KeyCode.A)) { move += Vector3.left; }
         if (Input.GetKey(KeyCode.D)) { move += Vector3.right; }
 
-        // 물리적 이동 (속도는 그대로, 힘을 0으로 설정)
         if (move != Vector3.zero)
         {
-            // X, Z 방향으로만 이동하고 Y 방향 속도는 유지
             rb.velocity = new Vector3(move.x * speed, rb.velocity.y, move.z * speed);
         }
         else
         {
-            // 키 입력이 없으면 속도 0으로 설정 (X, Z 방향)
             rb.velocity = new Vector3(0, rb.velocity.y, 0);
         }
     }
 
-    // 충돌 시 바닥에 닿으면 isGrounded를 true로 설정
     private void OnCollisionEnter(Collision collision)
     {
         if (collision.collider.CompareTag("Ground"))
         {
-            isGrounded = true; // 바닥에 닿았으면 점프 가능
+            isGrounded = true;
         }
 
-        // 충돌 시 튕겨나가도록 힘을 추가
-        // 충돌 후 위로 튕겨 나가도록 설정
         if (isGrounded)
         {
-            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse); // 위로 힘을 추가하여 튕겨 오르게 함
+            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
         }
 
-        // 충돌 후 힘을 0으로 설정하여 튕겨나가지 않게 함
-        rb.velocity = new Vector3(0, rb.velocity.y, 0); // X, Z 방향의 속도를 0으로 설정
+        // DangerBlock: 충돌 시 게임 종료
+        if (collision.collider.CompareTag("DangerBlock"))
+        {
+            GameOver();
+        }
+
+        // PowerUpBlock: 충돌 시 특수 능력 부여
+        if (collision.collider.CompareTag("PowerUpBlock"))
+        {
+            StartCoroutine(PowerUp());
+            Destroy(collision.gameObject); // 충돌한 PowerUp 블록 제거
+        }
+
+        // GoalBlock: 충돌 시 게임 성공
+        if (collision.collider.CompareTag("GoalBlock"))
+        {
+            GameClear();
+        }
+    }
+
+    private void GameOver()
+    {
+        Debug.Log("Game Over!");
+        isGameActive = false; // 입력 차단
+        rb.velocity = Vector3.zero; // 물리 속도 초기화
+        rb.isKinematic = true; // Rigidbody 비활성화
+        gameOverText.SetActive(true); // "Game Over" 메시지 표시
+        StartCoroutine(RestartGame()); // 게임 재시작
+    }
+
+    private void GameClear()
+    {
+        Debug.Log("You Win!");
+        isGameActive = false; // 입력 차단
+        rb.velocity = Vector3.zero; // 물리 속도 초기화
+        rb.isKinematic = true; // Rigidbody 비활성화
+        winText.SetActive(true); // "You Win!" 메시지 표시
+        StartCoroutine(RestartGame());
+    }
+
+    private IEnumerator RestartGame()
+    {
+        yield return new WaitForSeconds(1f); // 3초 대기
+        rb.isKinematic = false; // Rigidbody 다시 활성화
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name); // 현재 씬 리로드
+    }
+
+    private IEnumerator PowerUp()
+    {
+        Debug.Log("Power Up Activated!");
+        isPoweredUp = true;
+        float originalSpeed = speed;
+
+        // 속도 증가
+        speed *= 3;
+
+        // 색상 변경
+        if (ballRenderer != null)
+        {
+            ballRenderer.material.color = powerUpColor;
+        }
+
+        yield return new WaitForSeconds(powerUpDuration); // 지속 시간 동안 대기
+
+        // 속도와 색상 복구
+        speed = originalSpeed;
+
+        if (ballRenderer != null)
+        {
+            ballRenderer.material.color = originalColor;
+        }
+
+        isPoweredUp = false;
+        Debug.Log("Power Up Deactivated!");
     }
 }

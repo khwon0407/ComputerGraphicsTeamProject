@@ -5,6 +5,9 @@ TagManager:
   serializedVersion: 2
   tags:
   - Ground
+  - DangerBlock
+  - GoalBlock
+  - PowerUpBlock
   layers:
   - Default
   - TransparentFX
