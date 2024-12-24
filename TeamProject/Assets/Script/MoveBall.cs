@@ -113,7 +113,7 @@ private void ActivateSpringBoard(GameObject springBoard)
     Debug.Log("SpringBoard Activated!");
 
     // 공에 즉시 상향 힘 추가
-    float springForce = 15f; // 점프대에서 추가되는 힘
+    float springForce = 5f; // 점프대에서 추가되는 힘
     rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z); // 기존 Y축 속도를 초기화
     rb.AddForce(Vector3.up * springForce, ForceMode.Impulse);
 
@@ -142,7 +142,7 @@ private void ActivateSpringBoard(GameObject springBoard)
         rb.velocity = Vector3.zero; // 물리 속도 초기화
         rb.isKinematic = true; // Rigidbody 비활성화
         winText.SetActive(true); // "You Win!" 메시지 표시
-        StartCoroutine(RestartGame());
+        StartCoroutine(LoadNextStage());
     }
 
     private IEnumerator RestartGame()
@@ -151,6 +151,26 @@ private void ActivateSpringBoard(GameObject springBoard)
         rb.isKinematic = false; // Rigidbody 다시 활성화
         SceneManager.LoadScene(SceneManager.GetActiveScene().name); // 현재 씬 리로드
     }
+
+      private IEnumerator LoadNextStage()
+    {
+        yield return new WaitForSeconds(2f); // 2초 대기 (연출용)
+
+        // 현재 씬의 인덱스 가져오기
+        int currentSceneIndex = SceneManager.GetActiveScene().buildIndex;
+
+        // 다음 씬으로 이동 (마지막 씬일 경우 첫 번째 씬으로 돌아가기)
+        if (currentSceneIndex + 1 < SceneManager.sceneCountInBuildSettings)
+        {
+            SceneManager.LoadScene(currentSceneIndex + 1);
+        }
+        else
+        {
+            Debug.Log("마지막 스테이지입니다! 처음으로 돌아갑니다.");
+            SceneManager.LoadScene(0); // 첫 번째 씬으로 이동
+        }
+    }
+
 
     private IEnumerator PowerUp()
     {

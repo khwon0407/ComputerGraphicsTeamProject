@@ -8,6 +8,9 @@ TagManager:
   - DangerBlock
   - GoalBlock
   - PowerUpBlock
+  - Wall
+  - SpringBoard
+  - JumpBoostBlock
   layers:
   - Default
   - TransparentFX
