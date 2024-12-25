@@ -1,39 +1,3 @@
-//using UnityEngine;
-
-//public class SandStorm : MonoBehaviour
-//{
-//    public float pushForce = 2f; // 공을 오른쪽으로 밀어내는 힘
-//    public ParticleSystem sandParticles; // 모래 바람 파티클
-
-//    private void OnTriggerStay(Collider other)
-//    {
-//        if (other.CompareTag("Player")) // Player 태그가 있는 오브젝트만 반응
-//        {
-//            Rigidbody rb = other.GetComponent<Rigidbody>();
-//            if (rb != null)
-//            {
-//                // 오른쪽으로 힘 가하기
-//                rb.AddForce(Vector3.right * pushForce, ForceMode.Force);
-//            }
-//        }
-//    }
-
-//    private void OnTriggerEnter(Collider other)
-//    {
-//        if (other.CompareTag("Player") && sandParticles != null)
-//        {
-//            sandParticles.Play(); // 플레이어가 들어오면 파티클 재생
-//        }
-//    }
-
-//    private void OnTriggerExit(Collider other)
-//    {
-//        if (other.CompareTag("Player") && sandParticles != null)
-//        {
-//            sandParticles.Stop(); // 플레이어가 나가면 파티클 정지
-//        }
-//    }
-//}
 
 using UnityEngine;
 
