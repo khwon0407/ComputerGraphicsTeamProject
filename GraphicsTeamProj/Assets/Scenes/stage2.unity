@@ -2446,7 +2446,7 @@ MonoBehaviour:
   distance: 10
   minPitch: 10
   maxPitch: 80
-  rotationSpeed: 100
+  rotationSpeed: 150
   smoothSpeed: 10
 --- !u!1001 &214870108
 PrefabInstance:
