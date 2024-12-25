@@ -15,6 +15,11 @@ public class stage12select : MonoBehaviour
         SceneManager.LoadScene("Stage2");
     }
 
+    public void LoadStage3()
+    {
+        SceneManager.LoadScene("Stage3");
+    }
+
     // 게임 종료 함수
     public void QuitGame()
     {
