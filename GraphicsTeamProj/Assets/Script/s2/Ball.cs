@@ -3,11 +3,6 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
 
-/// <summary>
-/// - 공의 자연스러운 물리 이동/반사/바운스(기존 ball.cs 핵심)
-/// - 게임 기믹(아이템, UI, 오디오, GameOver/Win 등) (MoveBall.cs 일부 차용)
-/// - 필요 없는 부분(ground 체크, SpringBoard)은 제거
-/// </summary>
 [RequireComponent(typeof(Rigidbody))]
 public class BallController : MonoBehaviour
 {
@@ -160,6 +155,7 @@ public class BallController : MonoBehaviour
             );
         }
 
+        // 공이 EnemyTrigger표면 (NavMesh 타일)에 닿으면 적 Agent를 활성화
         if (collision.gameObject.CompareTag("EnemyTrigger"))
         {
             TriggerEnemyController[] enemies = FindObjectsOfType<TriggerEnemyController>();
