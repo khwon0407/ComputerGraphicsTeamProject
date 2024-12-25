@@ -26,4 +26,10 @@ public class stage12select : MonoBehaviour
         Application.Quit();
 #endif
     }
+
+    // 메인 메뉴로 이동하는 함수
+    public void ReturnToMainMenu()
+    {
+        SceneManager.LoadScene("stageselect");
+    }
 }
