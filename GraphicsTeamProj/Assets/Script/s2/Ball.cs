@@ -16,6 +16,10 @@ public class BallController : MonoBehaviour
     public float deceleration = 4f;
     public float bounciness = 0.8f;
     public float gravityScale = 2.8f;
+
+    public float originalMoveSpeed { get; private set; }
+    public float originalBounceSpeed { get; private set; }
+    public float originalMaxSpeed { get; private set; }
     #endregion
 
     #region CameraReference
@@ -46,9 +50,6 @@ public class BallController : MonoBehaviour
     [SerializeField] private AudioClip powerUpSound;
     [SerializeField] private AudioClip springBoardSound;
 
-    private float originalMoveSpeed;
-    private float originalBounceSpeed;
-    private float originalMaxSpeed;
     private bool isGameActive = true;
     #endregion
 
@@ -199,38 +200,22 @@ public class BallController : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
+        BallPowerUpManager powerUpManager = GetComponent<BallPowerUpManager>();
+        
         if (other.CompareTag("PowerUpBlock"))
         {
             PlaySound(powerUpSound);
-            StartCoroutine(DoSpeedBoost(2f, 5f));
+            powerUpManager.AddSpeedBoost(2f, 5f);
             Destroy(other.gameObject);
         }
 
         if (other.CompareTag("JumpBoostBlock"))
         {
             PlaySound(powerUpSound);
-            StartCoroutine(DoBounceBoost(1.5f, 5f));
+            powerUpManager.AddBounceBoost(1.5f, 5f);
             Destroy(other.gameObject);
         }
     }
-
-    #region PowerUpCoroutines
-    private IEnumerator DoSpeedBoost(float multiplier, float duration)
-    {
-        moveSpeed *= multiplier;
-        maxSpeed *= multiplier;
-        yield return new WaitForSeconds(duration);
-        moveSpeed = originalMoveSpeed;
-        maxSpeed = originalMaxSpeed;
-    }
-
-    private IEnumerator DoBounceBoost(float multiplier, float duration)
-    {
-        bounceSpeed *= multiplier;
-        yield return new WaitForSeconds(duration);
-        bounceSpeed = originalBounceSpeed;
-    }
-    #endregion
 
     #region GameOver / GameClear
     private void GameOver()
