@@ -1,50 +1,54 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement; // 씬 관리
-using TMPro; // TextMeshPro 네임스페이스 추가
+using UnityEngine.SceneManagement;
 
 public class MoveBall : MonoBehaviour
 {
-    [SerializeField]
-    float speed = 5f; // 기본 이동 속도
+    [SerializeField] private int jumpBoostCount = 3;
+    private int remainingJumpBoosts = 0;
+    private bool isJumpBoostActive = false;
+    private PowerUpManager powerUpManager;
 
-    [SerializeField]
-    float jumpForce = 10f; // 점프 힘
-    Rigidbody rb; // Rigidbody 컴포넌트
+    [SerializeField] private float speed = 5f;
+    [SerializeField] private float jumpForce = 7f;
+    [SerializeField] private float maxJumpForce = 25f;
+    [SerializeField] private float fallThreshold = -10f;
 
-    bool isGrounded = true; // 공이 바닥에 닿아있는지 여부
-    bool isPoweredUp = false; // 특수 능력 활성화 여부
-    bool isGameActive = true; // 게임 진행 상태 플래그
+    private readonly float originalSpeed = 5f;
+    private readonly float originalJumpForce = 7f;
 
-    float powerUpDuration = 3f; // 특수 능력 지속 시간
-    float jumpBoostDuration = 3f; // 점프 강화 지속 시간
+    private Rigidbody rb;
 
-    [SerializeField] GameObject gameOverText; // "Game Over" 메시지
-    [SerializeField] GameObject winText;     // "You Win!" 메시지
+    private bool isGrounded = true;
+    private bool isGameActive = true;
 
-    [SerializeField] Color powerUpColor = Color.red; // PowerUp 시 변경할 색상
-    [SerializeField] Color jumpBoostColor = Color.blue; // Jump Boost 시 변경할 색상
-    private Color originalColor; // 원래 색상
-    private Renderer ballRenderer; // 공의 Renderer 컴포넌트
+    private HashSet<Collider> groundColliders = new HashSet<Collider>();
+
+    [SerializeField] private GameObject gameOverText;
+    [SerializeField] private GameObject winText;
+
+    [SerializeField] private Color powerUpColor = Color.red;
+    [SerializeField] private Color jumpBoostColor = Color.blue;
+    private Color originalColor;
+    private Renderer ballRenderer;
+    private bool hasJumped = false;
 
     void Start()
     {
-        rb = GetComponent<Rigidbody>(); // Rigidbody 컴포넌트 가져오기
-        rb.isKinematic = false; // 중력과 물리 엔진 영향 받도록 설정
-
-        // Renderer 및 원래 색상 초기화
+        rb = GetComponent<Rigidbody>();
+        powerUpManager = GetComponent<PowerUpManager>();
         ballRenderer = GetComponent<Renderer>();
+
         originalColor = ballRenderer.material.color;
 
-        // UI 초기화
-        if (gameOverText != null) gameOverText.SetActive(false);
-        if (winText != null) winText.SetActive(false);
+        gameOverText?.SetActive(false);
+        winText?.SetActive(false);
     }
 
     void Update()
     {
-        if (!isGameActive) return; // 게임 오버/승리 상태에서는 입력 무시
+        if (!isGameActive) return;
 
         Vector3 move = Vector3.zero;
 
@@ -53,178 +57,206 @@ public class MoveBall : MonoBehaviour
         if (Input.GetKey(KeyCode.A)) { move += Vector3.left; }
         if (Input.GetKey(KeyCode.D)) { move += Vector3.right; }
 
-        if (move != Vector3.zero)
+        rb.velocity = new Vector3(move.x * speed, rb.velocity.y, move.z * speed);
+
+        if (transform.position.y < fallThreshold)
         {
-            rb.velocity = new Vector3(move.x * speed, rb.velocity.y, move.z * speed);
+            Debug.Log("Ball fell below the threshold!");
+            GameOver();
+        }
+    }
+
+    private void OnTriggerEnter(Collider other)
+{
+    Debug.Log($"Triggered by: {other.gameObject.name}"); // 디버그 추가
+
+    if (other.CompareTag("PowerUpBlock"))
+    {
+        Debug.Log("PowerUpBlock triggered!");
+        powerUpManager.AddPowerUp(new PowerUp
+        {
+            Name = "SpeedBoost",
+            Duration = 5f,
+            Color = powerUpColor,
+            ActivateEffect = () => speed *= 2,
+            DeactivateEffect = () => speed = originalSpeed
+        });
+
+        Destroy(other.gameObject); // 블록 제거
+    }
+
+    if (other.CompareTag("JumpBoostBlock"))
+    {
+        Debug.Log("JumpBoostBlock triggered!");
+        powerUpManager.AddPowerUp(new PowerUp
+        {
+            Name = "JumpBoost",
+            Duration = 5f,
+            Color = jumpBoostColor,
+            ActivateEffect = () => jumpForce *= 1.5f,
+            DeactivateEffect = () => jumpForce = originalJumpForce
+        });
+
+        Destroy(other.gameObject); // 블록 제거
+    }
+}
+
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        Debug.Log($"Collision Detected: {collision.collider.name}");
+
+        if (collision.collider.CompareTag("SpringBoard"))
+        {
+            Debug.Log("SpringBoard detected. Activating...");
+            ActivateSpringBoard(collision.collider.transform.parent != null ? collision.collider.transform.parent.gameObject : collision.gameObject);
+            return;
+        }
+
+        foreach (ContactPoint contact in collision.contacts)
+        {
+            if (Vector3.Angle(contact.normal, Vector3.up) < 45)
+            {
+                if (!groundColliders.Contains(collision.collider))
+                {
+                    groundColliders.Add(collision.collider);
+                }
+
+                if (!isGrounded)
+                {
+                    isGrounded = true;
+                    Debug.Log("Grounded.");
+                }
+
+                if (!hasJumped)
+                {
+                    hasJumped = true;
+                    HandleJump();
+                }
+            }
+        }
+
+        if (collision.collider.CompareTag("DangerBlock"))
+        {
+            GameOver();
+        }
+
+        if (collision.collider.CompareTag("GoalBlock"))
+        {
+            GameClear();
+        }
+    }
+
+    private void OnCollisionExit(Collision collision)
+    {
+        Debug.Log($"Collision Exit Detected: {collision.collider.name}");
+        groundColliders.Remove(collision.collider);
+
+        if (groundColliders.Count == 0)
+        {
+            isGrounded = false;
+            hasJumped = false;
+            Debug.Log("No longer grounded.");
+        }
+    }
+
+    private void HandleJump()
+    {
+        Debug.Log("Normal jump performed.");
+
+        if (isJumpBoostActive && remainingJumpBoosts > 0)
+        {
+            rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+            float boostedJumpForce = jumpForce * 1.5f;
+            float finalJumpForce = Mathf.Min(boostedJumpForce, maxJumpForce);
+            rb.AddForce(Vector3.up * finalJumpForce, ForceMode.Impulse);
+            remainingJumpBoosts--;
+
+            if (remainingJumpBoosts <= 0)
+            {
+                DeactivateJumpBoost();
+            }
         }
         else
         {
-            rb.velocity = new Vector3(0, rb.velocity.y, 0);
+            rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+            rb.AddForce(Vector3.up * Mathf.Min(jumpForce, maxJumpForce), ForceMode.Impulse);
         }
     }
 
-    private void OnCollisionEnter(Collision collision)
-{
-    if (collision.collider.CompareTag("Ground"))
+    private void DeactivateJumpBoost()
     {
-        isGrounded = true;
+        Debug.Log("Jump Boost Deactivated!");
+        isJumpBoostActive = false;
+        remainingJumpBoosts = 0;
+
+        if (ballRenderer != null)
+        {
+            ballRenderer.material.color = originalColor;
+        }
     }
 
-    if (isGrounded)
+    private void ActivateSpringBoard(GameObject springBoard)
     {
-        rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+        Debug.Log("Activating SpringBoard...");
+
+        float springForce = 7f;
+        float finalSpringForce = Mathf.Min(jumpForce + springForce, maxJumpForce);
+        rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+        rb.AddForce(Vector3.up * finalSpringForce, ForceMode.Impulse);
+
+        Animator animator = springBoard.GetComponent<Animator>();
+        if (animator != null)
+        {
+            Debug.Log("Triggering Animator.");
+            animator.SetTrigger("Activate");
+        }
+        else
+        {
+            Debug.LogError($"Animator is missing on {springBoard.name}");
+        }
+
+        isGrounded = false;
+        hasJumped = true;
     }
-
-    // DangerBlock: 충돌 시 게임 종료
-    if (collision.collider.CompareTag("DangerBlock"))
-    {
-        GameOver();
-    }
-
-    // PowerUpBlock: 충돌 시 특수 능력 부여
-    if (collision.collider.CompareTag("PowerUpBlock"))
-    {
-        StartCoroutine(PowerUp());
-        Destroy(collision.gameObject); // 충돌한 PowerUp 블록 제거
-    }
-
-    // JumpBoostBlock: 충돌 시 점프 강화
-    if (collision.collider.CompareTag("JumpBoostBlock"))
-    {
-        StartCoroutine(JumpBoost());
-        Destroy(collision.gameObject); // 충돌한 JumpBoost 블록 제거
-    }
-
-    // SpringBoard: 밟으면 즉시 높은 점프
-    if (collision.collider.CompareTag("SpringBoard"))
-    {
-        ActivateSpringBoard(collision.gameObject);
-    }
-
-    // GoalBlock: 충돌 시 게임 성공
-    if (collision.collider.CompareTag("GoalBlock"))
-    {
-        GameClear();
-    }
-}
-
-private void ActivateSpringBoard(GameObject springBoard)
-{
-    Debug.Log("SpringBoard Activated!");
-
-    // 공에 즉시 상향 힘 추가
-    float springForce = 5f; // 점프대에서 추가되는 힘
-    rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z); // 기존 Y축 속도를 초기화
-    rb.AddForce(Vector3.up * springForce, ForceMode.Impulse);
-
-    // 시각적 효과 (예: 스프링이 눌리는 애니메이션)
-    Animator animator = springBoard.GetComponent<Animator>();
-    if (animator != null)
-    {
-        animator.SetTrigger("Activate");
-    }
-}
 
     private void GameOver()
     {
-        Debug.Log("Game Over!");
-        isGameActive = false; // 입력 차단
-        rb.velocity = Vector3.zero; // 물리 속도 초기화
-        rb.isKinematic = true; // Rigidbody 비활성화
-        gameOverText.SetActive(true); // "Game Over" 메시지 표시
-        StartCoroutine(RestartGame()); // 게임 재시작
+        isGameActive = false;
+        rb.velocity = Vector3.zero;
+        rb.isKinematic = true;
+        gameOverText.SetActive(true);
+        StartCoroutine(RestartGame());
     }
 
     private void GameClear()
     {
-        Debug.Log("You Win!");
-        isGameActive = false; // 입력 차단
-        rb.velocity = Vector3.zero; // 물리 속도 초기화
-        rb.isKinematic = true; // Rigidbody 비활성화
-        winText.SetActive(true); // "You Win!" 메시지 표시
+        isGameActive = false;
+        rb.velocity = Vector3.zero;
+        rb.isKinematic = true;
+        winText.SetActive(true);
         StartCoroutine(LoadNextStage());
     }
 
     private IEnumerator RestartGame()
     {
-        yield return new WaitForSeconds(1f); // 1초 대기
-        rb.isKinematic = false; // Rigidbody 다시 활성화
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name); // 현재 씬 리로드
+        yield return new WaitForSeconds(1f);
+        rb.isKinematic = false;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
-      private IEnumerator LoadNextStage()
+    private IEnumerator LoadNextStage()
     {
-        yield return new WaitForSeconds(2f); // 2초 대기 (연출용)
-
-        // 현재 씬의 인덱스 가져오기
+        yield return new WaitForSeconds(2f);
         int currentSceneIndex = SceneManager.GetActiveScene().buildIndex;
 
-        // 다음 씬으로 이동 (마지막 씬일 경우 첫 번째 씬으로 돌아가기)
         if (currentSceneIndex + 1 < SceneManager.sceneCountInBuildSettings)
         {
             SceneManager.LoadScene(currentSceneIndex + 1);
         }
         else
         {
-            Debug.Log("마지막 스테이지입니다! 처음으로 돌아갑니다.");
-            SceneManager.LoadScene(0); // 첫 번째 씬으로 이동
+            SceneManager.LoadScene(0);
         }
-    }
-
-
-    private IEnumerator PowerUp()
-    {
-        Debug.Log("Power Up Activated!");
-        isPoweredUp = true;
-        float originalSpeed = speed;
-
-        // 속도 증가
-        speed *= 3;
-
-        // 색상 변경
-        if (ballRenderer != null)
-        {
-            ballRenderer.material.color = powerUpColor;
-        }
-
-        yield return new WaitForSeconds(powerUpDuration); // 지속 시간 동안 대기
-
-        // 속도와 색상 복구
-        speed = originalSpeed;
-
-        if (ballRenderer != null)
-        {
-            ballRenderer.material.color = originalColor;
-        }
-
-        isPoweredUp = false;
-        Debug.Log("Power Up Deactivated!");
-    }
-
-    private IEnumerator JumpBoost()
-    {
-        Debug.Log("Jump Boost Activated!");
-        float originalJumpForce = jumpForce;
-
-        // 점프 힘 증가
-        jumpForce *= 1.5f;
-
-        // 색상 변경
-        if (ballRenderer != null)
-        {
-            ballRenderer.material.color = jumpBoostColor;
-        }
-
-        yield return new WaitForSeconds(jumpBoostDuration); // 지속 시간 동안 대기
-
-        // 점프 힘과 색상 복구
-        jumpForce = originalJumpForce;
-
-        if (ballRenderer != null)
-        {
-            ballRenderer.material.color = originalColor;
-        }
-
-        Debug.Log("Jump Boost Deactivated!");
     }
 }
