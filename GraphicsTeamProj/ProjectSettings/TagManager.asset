@@ -10,11 +10,12 @@ TagManager:
   - PowerUpBlock
   - JumpBoostBlock
   - SpringBoard
+  - EnemyTrigger
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Navv
   - Water
   - UI
   - 

@@ -6,11 +6,11 @@ public class FollowCameraNoPivot : MonoBehaviour
     public Transform target;
 
     [Header("Dead Zone Settings")]
-    public float deadZoneHeight = 2f;
+    public float deadZoneHeight = 5f;
     public bool showDeadZoneGizmo = true;
 
     [Header("Camera Orbit Settings")]
-    public float distance = 5f;
+    public float distance = 12f;
     public float minPitch = 10f;
     public float maxPitch = 80f;
     public float rotationSpeed = 100f;

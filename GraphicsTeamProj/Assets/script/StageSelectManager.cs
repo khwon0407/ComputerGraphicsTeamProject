@@ -1,27 +1,27 @@
 using UnityEngine;
-using UnityEngine.SceneManagement; // ¾À ·Îµå¸¦ À§ÇØ ÇÊ¿ä
-using UnityEngine.UI; // UI¸¦ ´Ù·ç±â À§ÇØ ÇÊ¿ä
+using UnityEngine.SceneManagement; // ì”¬ ë¡œë“œë¥¼ ìœ„í•´ í•„ìš”
+using UnityEngine.UI; // UIë¥¼ ë‹¤ë£¨ê¸° ìœ„í•´ í•„ìš”
 
 public class StageSelectManager : MonoBehaviour
 {
-    // ¹öÆ° ¹è¿­·Î ½ºÅ×ÀÌÁö ¹öÆ°À» ÀúÀå
+    // ë²„íŠ¼ ë°°ì—´ë¡œ ìŠ¤í…Œì´ì§€ ë²„íŠ¼ì„ ì €ì¥
     public Button[] stageButtons;
 
     void Start()
     {
-        // °¢ ¹öÆ°¿¡ Å¬¸¯ ÀÌº¥Æ®¸¦ ¿¬°á
+        // ê° ë²„íŠ¼ì— í´ë¦­ ì´ë²¤íŠ¸ë¥¼ ì—°ê²°
         for (int i = 0; i < stageButtons.Length; i++)
         {
-            int stageIndex = i + 1; // ½ºÅ×ÀÌÁö ¹øÈ£ (1ºÎÅÍ ½ÃÀÛ)
+            int stageIndex = i + 1; // ìŠ¤í…Œì´ì§€ ë²ˆí˜¸ (1ë¶€í„° ì‹œì‘)
             stageButtons[i].onClick.AddListener(() => LoadStage(stageIndex));
         }
     }
 
-    // Æ¯Á¤ ½ºÅ×ÀÌÁö¸¦ ·ÎµåÇÏ´Â ÇÔ¼ö
+    // íŠ¹ì • ìŠ¤í…Œì´ì§€ë¥¼ ë¡œë“œí•˜ëŠ” í•¨ìˆ˜
     public void LoadStage(int stageIndex)
     {
-        string sceneName = "Stage" + stageIndex; // ½ºÅ×ÀÌÁö ¾À ÀÌ¸§ ¿¹: "Stage1"
-        Debug.Log(sceneName + "·Î ÀÌµ¿ÇÕ´Ï´Ù.");
-        SceneManager.LoadScene(sceneName); // ÇØ´ç ½ºÅ×ÀÌÁö ¾À ·Îµå
+        string sceneName = "Stage" + stageIndex; // ìŠ¤í…Œì´ì§€ ì”¬ ì´ë¦„ ì˜ˆ: "Stage1"
+        Debug.Log(sceneName + "ë¡œ ì´ë™í•©ë‹ˆë‹¤.");
+        SceneManager.LoadScene(sceneName); // í•´ë‹¹ ìŠ¤í…Œì´ì§€ ì”¬ ë¡œë“œ
     }
 }
