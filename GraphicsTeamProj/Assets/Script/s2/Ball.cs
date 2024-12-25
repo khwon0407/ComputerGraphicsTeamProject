@@ -44,6 +44,7 @@ public class BallController : MonoBehaviour
     [SerializeField] private AudioClip gameOverSound;
     [SerializeField] private AudioClip winSound;
     [SerializeField] private AudioClip powerUpSound;
+    [SerializeField] private AudioClip springBoardSound;
 
     private float originalMoveSpeed;
     private float originalBounceSpeed;
@@ -142,17 +143,47 @@ public class BallController : MonoBehaviour
             return;
         }
 
+        if (collision.collider.CompareTag("SpringBoard"))
+        {
+            GameObject springBoard = collision.collider.transform.parent != null 
+                ? collision.collider.transform.parent.gameObject 
+                : collision.gameObject;
+
+            Animator animator = springBoard.GetComponent<Animator>();
+            if (animator != null)
+            {
+                animator.SetTrigger("Activate");
+            }
+
+            PlaySound(springBoardSound, 2f);
+
+            Debug.Log($"SpringBoard - Before: Velocity Y = {rb.velocity.y:F2}");
+
+            rb.velocity = new Vector3(
+                rb.velocity.x,
+                bounceSpeed * 2f,
+                rb.velocity.z
+            );
+            
+            Debug.Log($"SpringBoard - After: Velocity Y = {rb.velocity.y:F2}");
+            return;
+        }
+
         Vector3 contactNormal = collision.contacts[0].normal;
         float angle = Vector3.Angle(contactNormal, Vector3.up);
 
         if (angle < 45f)
         {
+            Debug.Log($"Normal Bounce - Before: Velocity Y = {rb.velocity.y:F2}");
+            
             Vector3 currentVelocity = rb.velocity;
             rb.velocity = new Vector3(
                 currentVelocity.x,
                 bounceSpeed,
                 currentVelocity.z
             );
+            
+            Debug.Log($"Normal Bounce - After: Velocity Y = {rb.velocity.y:F2}");
         }
 
         // 공이 EnemyTrigger표면 (NavMesh 타일)에 닿으면 적 Agent를 활성화
