@@ -133,6 +133,7 @@ GameObject:
   - component: {fileID: 212695735}
   - component: {fileID: 212695734}
   - component: {fileID: 212695733}
+  - component: {fileID: 212695736}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -214,6 +215,26 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &212695736
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 212695732}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68da384e6ad50ac408f09782f1934bbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  target: {fileID: 699099621}
+  deadZoneHeight: 5
+  showDeadZoneGizmo: 1
+  distance: 10
+  minPitch: 10
+  maxPitch: 80
+  rotationSpeed: 100
+  smoothSpeed: 10
 --- !u!1 &699099617
 GameObject:
   m_ObjectHideFlags: 0
@@ -228,6 +249,8 @@ GameObject:
   - component: {fileID: 699099618}
   - component: {fileID: 699099623}
   - component: {fileID: 699099622}
+  - component: {fileID: 699099625}
+  - component: {fileID: 699099624}
   m_Layer: 0
   m_Name: Ball
   m_TagString: Untagged
@@ -355,17 +378,67 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 699099617}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ea23573cb5be4eb408a55a92eecd5399, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  jumpBoostCount: 3
   speed: 5
   jumpForce: 10
+  maxJumpForce: 25
+  fallThreshold: -10
   gameOverText: {fileID: 0}
   winText: {fileID: 0}
   powerUpColor: {r: 1, g: 0, b: 0, a: 1}
   jumpBoostColor: {r: 0, g: 0, b: 1, a: 1}
+  gameStartSound: {fileID: 0}
+  gameOverSound: {fileID: 0}
+  winSound: {fileID: 0}
+  jumpSound: {fileID: 0}
+  powerUpSound: {fileID: 0}
+  springBoardSound: {fileID: 0}
+  bgmAudioSource: {fileID: 0}
+--- !u!114 &699099624
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 699099617}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb9eac65961afc548b58fed215be6c04, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bounceSpeed: 14.9
+  moveSpeed: 11.41
+  maxSpeed: 4.32
+  deceleration: 4.46
+  bounciness: 0.8
+  gravityScale: 2.78
+  cameraTransform: {fileID: 0}
+  jumpForce: 7
+  maxJumpForce: 25
+  groundAngleThreshold: 45
+  gameOverText: {fileID: 0}
+  winText: {fileID: 0}
+  fallThreshold: -10
+  drawDebugForces: 1
+  debugForceScale: 0.2
+  debugForceColor: {r: 1, g: 0, b: 0, a: 1}
+--- !u!114 &699099625
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 699099617}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84edcd67e58377440a0cbbf0bf221af9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1690594614
 GameObject:
   m_ObjectHideFlags: 0
@@ -412,7 +485,7 @@ GameObject:
   - component: {fileID: 1695467648}
   m_Layer: 0
   m_Name: Plane
-  m_TagString: Untagged
+  m_TagString: SpringBoard
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
