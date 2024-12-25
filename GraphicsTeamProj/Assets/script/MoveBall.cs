@@ -111,7 +111,7 @@ public class MoveBall : MonoBehaviour
                 Name = "JumpBoost",
                 Duration = 5f,
                 Color = jumpBoostColor,
-                ActivateEffect = () => jumpForce *= 1.5f,
+                ActivateEffect = () => jumpForce *= 2f,
                 DeactivateEffect = () => jumpForce = originalJumpForce
             });
 
