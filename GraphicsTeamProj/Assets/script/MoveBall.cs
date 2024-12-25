@@ -1,7 +1,7 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Collections.Generic;
 
 public class MoveBall : MonoBehaviour
 {
@@ -34,16 +34,36 @@ public class MoveBall : MonoBehaviour
     private Renderer ballRenderer;
     private bool hasJumped = false;
 
+    // AudioClips for various events
+    [SerializeField] private AudioClip gameStartSound;
+    [SerializeField] private AudioClip gameOverSound;
+    [SerializeField] private AudioClip winSound;
+    [SerializeField] private AudioClip jumpSound;
+    [SerializeField] private AudioClip powerUpSound;
+    [SerializeField] private AudioClip springBoardSound;
+
+    [SerializeField] private AudioSource bgmAudioSource; // 배경음악 AudioSource
+    private AudioSource audioSource;
+
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         powerUpManager = GetComponent<PowerUpManager>();
         ballRenderer = GetComponent<Renderer>();
+        audioSource = GetComponent<AudioSource>();
 
         originalColor = ballRenderer.material.color;
 
         gameOverText?.SetActive(false);
         winText?.SetActive(false);
+
+        PlaySound(gameStartSound, 0.5f); // 게임 시작 사운드 재생
+
+        // 배경음악 재생
+        if (bgmAudioSource != null)
+        {
+            bgmAudioSource.Play();
+        }
     }
 
     void Update()
@@ -67,85 +87,84 @@ public class MoveBall : MonoBehaviour
     }
 
     private void OnTriggerEnter(Collider other)
-{
-    Debug.Log($"Triggered by: {other.gameObject.name}"); // 디버그 추가
-
-    if (other.CompareTag("PowerUpBlock"))
     {
-        Debug.Log("PowerUpBlock triggered!");
-        powerUpManager.AddPowerUp(new PowerUp
+        if (other.CompareTag("PowerUpBlock"))
         {
-            Name = "SpeedBoost",
-            Duration = 5f,
-            Color = powerUpColor,
-            ActivateEffect = () => speed *= 2,
-            DeactivateEffect = () => speed = originalSpeed
-        });
+            PlaySound(powerUpSound); // 파워업 사운드
+            powerUpManager.AddPowerUp(new PowerUp
+            {
+                Name = "SpeedBoost",
+                Duration = 5f,
+                Color = powerUpColor,
+                ActivateEffect = () => speed *= 2,
+                DeactivateEffect = () => speed = originalSpeed
+            });
 
-        Destroy(other.gameObject); // 블록 제거
+            Destroy(other.gameObject);
+        }
+
+        if (other.CompareTag("JumpBoostBlock"))
+        {
+            PlaySound(powerUpSound); // 파워업 사운드
+            powerUpManager.AddPowerUp(new PowerUp
+            {
+                Name = "JumpBoost",
+                Duration = 5f,
+                Color = jumpBoostColor,
+                ActivateEffect = () => jumpForce *= 1.5f,
+                DeactivateEffect = () => jumpForce = originalJumpForce
+            });
+
+            Destroy(other.gameObject);
+        }
     }
 
-    if (other.CompareTag("JumpBoostBlock"))
-    {
-        Debug.Log("JumpBoostBlock triggered!");
-        powerUpManager.AddPowerUp(new PowerUp
-        {
-            Name = "JumpBoost",
-            Duration = 5f,
-            Color = jumpBoostColor,
-            ActivateEffect = () => jumpForce *= 1.5f,
-            DeactivateEffect = () => jumpForce = originalJumpForce
-        });
+    private void OnCollisionEnter(Collision collision)
+{
+    Debug.Log($"Collision Detected: {collision.collider.name}");
 
-        Destroy(other.gameObject); // 블록 제거
+    if (collision.collider.CompareTag("SpringBoard"))
+    {
+        Debug.Log("SpringBoard detected. Activating...");
+        PlaySound(springBoardSound,2f); // 점프대 사운드
+        ActivateSpringBoard(collision.collider.transform.parent != null ? collision.collider.transform.parent.gameObject : collision.gameObject);
+        return; // 점프대에서는 HandleJump를 실행하지 않음
+    }
+
+    foreach (ContactPoint contact in collision.contacts)
+    {
+        if (Vector3.Angle(contact.normal, Vector3.up) < 45)
+        {
+            if (!groundColliders.Contains(collision.collider))
+            {
+                groundColliders.Add(collision.collider);
+            }
+
+            if (!isGrounded)
+            {
+                isGrounded = true;
+                Debug.Log("Grounded.");
+            }
+
+            if (!hasJumped)
+            {
+                hasJumped = true;
+                HandleJump(); // 일반 점프 실행
+            }
+        }
+    }
+
+    if (collision.collider.CompareTag("DangerBlock"))
+    {
+        GameOver();
+    }
+
+    if (collision.collider.CompareTag("GoalBlock"))
+    {
+        GameClear();
     }
 }
 
-
-    private void OnCollisionEnter(Collision collision)
-    {
-        Debug.Log($"Collision Detected: {collision.collider.name}");
-
-        if (collision.collider.CompareTag("SpringBoard"))
-        {
-            Debug.Log("SpringBoard detected. Activating...");
-            ActivateSpringBoard(collision.collider.transform.parent != null ? collision.collider.transform.parent.gameObject : collision.gameObject);
-            return;
-        }
-
-        foreach (ContactPoint contact in collision.contacts)
-        {
-            if (Vector3.Angle(contact.normal, Vector3.up) < 45)
-            {
-                if (!groundColliders.Contains(collision.collider))
-                {
-                    groundColliders.Add(collision.collider);
-                }
-
-                if (!isGrounded)
-                {
-                    isGrounded = true;
-                    Debug.Log("Grounded.");
-                }
-
-                if (!hasJumped)
-                {
-                    hasJumped = true;
-                    HandleJump();
-                }
-            }
-        }
-
-        if (collision.collider.CompareTag("DangerBlock"))
-        {
-            GameOver();
-        }
-
-        if (collision.collider.CompareTag("GoalBlock"))
-        {
-            GameClear();
-        }
-    }
 
     private void OnCollisionExit(Collision collision)
     {
@@ -161,28 +180,40 @@ public class MoveBall : MonoBehaviour
     }
 
     private void HandleJump()
+{
+    Debug.Log("Normal jump performed.");
+    PlaySound(jumpSound,3f); // 점프 사운드
+
+    if (isJumpBoostActive && remainingJumpBoosts > 0)
     {
-        Debug.Log("Normal jump performed.");
+        rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+        float boostedJumpForce = jumpForce * 1.5f; // 점프 부스트 계산
+        float finalJumpForce = Mathf.Min(boostedJumpForce, maxJumpForce);
+        rb.AddForce(Vector3.up * finalJumpForce, ForceMode.Impulse);
+        remainingJumpBoosts--;
 
-        if (isJumpBoostActive && remainingJumpBoosts > 0)
+        if (remainingJumpBoosts <= 0)
         {
-            rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
-            float boostedJumpForce = jumpForce * 1.5f;
-            float finalJumpForce = Mathf.Min(boostedJumpForce, maxJumpForce);
-            rb.AddForce(Vector3.up * finalJumpForce, ForceMode.Impulse);
-            remainingJumpBoosts--;
-
-            if (remainingJumpBoosts <= 0)
-            {
-                DeactivateJumpBoost();
-            }
-        }
-        else
-        {
-            rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
-            rb.AddForce(Vector3.up * Mathf.Min(jumpForce, maxJumpForce), ForceMode.Impulse);
+            DeactivateJumpBoost();
         }
     }
+    else
+    {
+        rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+        rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse); // 일반 점프
+    }
+}
+
+
+    private void PlaySound(AudioClip clip, float volumeScale = 1.0f)
+    {
+        if (clip != null && audioSource != null)
+        {
+            // volumeScale을 사용해 볼륨을 조정 (0.0 ~ 1.0)
+            audioSource.PlayOneShot(clip, volumeScale);
+        }
+    }
+
 
     private void DeactivateJumpBoost()
     {
@@ -197,51 +228,86 @@ public class MoveBall : MonoBehaviour
     }
 
     private void ActivateSpringBoard(GameObject springBoard)
+{
+    Debug.Log("Activating SpringBoard...");
+
+    float springForce = 15f; // 점프대에서의 고정된 힘
+    rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z); // 기존 Y축 속도를 초기화
+    rb.AddForce(Vector3.up * springForce, ForceMode.Impulse); // 고정된 힘으로 점프
+
+    Animator animator = springBoard.GetComponent<Animator>();
+    if (animator != null)
     {
-        Debug.Log("Activating SpringBoard...");
-
-        float springForce = 7f;
-        float finalSpringForce = Mathf.Min(jumpForce + springForce, maxJumpForce);
-        rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
-        rb.AddForce(Vector3.up * finalSpringForce, ForceMode.Impulse);
-
-        Animator animator = springBoard.GetComponent<Animator>();
-        if (animator != null)
-        {
-            Debug.Log("Triggering Animator.");
-            animator.SetTrigger("Activate");
-        }
-        else
-        {
-            Debug.LogError($"Animator is missing on {springBoard.name}");
-        }
-
-        isGrounded = false;
-        hasJumped = true;
+        Debug.Log("Triggering Animator.");
+        animator.SetTrigger("Activate");
     }
+    else
+    {
+        Debug.LogError($"Animator is missing on {springBoard.name}");
+    }
+
+    isGrounded = false; // 점프대에서는 항상 공중 상태로 전환
+    hasJumped = true; // 점프 상태 기록
+}
 
     private void GameOver()
+{
+    if (!isGameActive) return;
+
+    isGameActive = false;
+    rb.velocity = Vector3.zero;
+    rb.isKinematic = true;
+    gameOverText.SetActive(true);
+
+    // 배경음악 정지
+    if (bgmAudioSource != null)
     {
-        isGameActive = false;
-        rb.velocity = Vector3.zero;
-        rb.isKinematic = true;
-        gameOverText.SetActive(true);
-        StartCoroutine(RestartGame());
+        StopBGM(); // 배경음악 정지
     }
 
-    private void GameClear()
+    PlaySound(gameOverSound, 0.5f); // 게임 오버 사운드
+    StartCoroutine(RestartGame());
+}
+
+private void GameClear()
+{
+    if (!isGameActive) return;
+
+    isGameActive = false;
+    rb.velocity = Vector3.zero;
+    rb.isKinematic = true;
+    winText.SetActive(true);
+
+    // 배경음악 정지
+    if (bgmAudioSource != null)
     {
-        isGameActive = false;
-        rb.velocity = Vector3.zero;
-        rb.isKinematic = true;
-        winText.SetActive(true);
-        StartCoroutine(LoadNextStage());
+        StopBGM(); // 배경음악 정지
     }
+
+    PlaySound(winSound, 0.5f); // 승리 사운드
+    StartCoroutine(LoadNextStage());
+}
+
+private void StopBGM()
+{
+    if (bgmAudioSource.isPlaying)
+    {
+        bgmAudioSource.Stop(); // 배경음악 완전히 정지
+    }
+}
+
 
     private IEnumerator RestartGame()
     {
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(2f);
         rb.isKinematic = false;
+
+        // 배경음악 다시 재생
+        if (bgmAudioSource != null)
+        {
+            bgmAudioSource.Play();
+        }
+
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
@@ -249,6 +315,12 @@ public class MoveBall : MonoBehaviour
     {
         yield return new WaitForSeconds(2f);
         int currentSceneIndex = SceneManager.GetActiveScene().buildIndex;
+
+        // 배경음악 다시 재생
+        if (bgmAudioSource != null)
+        {
+            bgmAudioSource.Play();
+        }
 
         if (currentSceneIndex + 1 < SceneManager.sceneCountInBuildSettings)
         {
