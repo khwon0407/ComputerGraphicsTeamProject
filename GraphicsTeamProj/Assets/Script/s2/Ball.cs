@@ -65,7 +65,7 @@ public class BallController : MonoBehaviour
         audioSource = GetComponent<AudioSource>();
         if (audioSource != null && gameStartSound != null)
         {
-            PlaySound(gameStartSound, 0.5f);
+            PlaySound(gameStartSound, 1f);
         }
 
         if (bgmAudioSource != null)
@@ -228,7 +228,7 @@ public class BallController : MonoBehaviour
         gameOverText?.SetActive(true);
 
         StopBGM();
-        PlaySound(gameOverSound, 0.5f);
+        PlaySound(gameOverSound, 1f);
 
         StartCoroutine(RestartGame());
     }
