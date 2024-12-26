@@ -177,12 +177,17 @@ public class BallController : MonoBehaviour
         {
             Debug.Log($"Normal Bounce - Before: Velocity Y = {rb.velocity.y:F2}");
             
-            Vector3 currentVelocity = rb.velocity;
-            rb.velocity = new Vector3(
-                currentVelocity.x,
-                bounceSpeed,
-                currentVelocity.z
-            );
+            if (rb.velocity.y < bounceSpeed)
+            {
+                Vector3 currentVelocity = rb.velocity;
+                float bounceVelocity = Mathf.Max(bounceSpeed, -currentVelocity.y * bounciness);
+                
+                rb.velocity = new Vector3(
+                    currentVelocity.x,
+                    bounceVelocity,
+                    currentVelocity.z
+                );
+            }
             
             Debug.Log($"Normal Bounce - After: Velocity Y = {rb.velocity.y:F2}");
         }
